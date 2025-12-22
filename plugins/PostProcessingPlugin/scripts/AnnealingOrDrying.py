@@ -14,11 +14,14 @@ Copyright (c) 2025 GregValiant (Greg Foresi)
  If you happen to have an enclosure with a fan, the fan can be set up to run during the drying or annealing.
 
  NOTE:  This script uses the G4 Dwell command as a timer.  It cannot be canceled from the LCD.  If you wish to 'escape' from G4 you might have to cancel the print from the LCD or cycle the printer on and off to reset.
+change log:
+12/18/25 Blocked UltiMaker printers from 'Drying' as the firmware didn't like the generated gcode.
 """
 
 from UM.Application import Application
 from ..Script import Script
 from UM.Message import Message
+from UM.Logger import Logger
 
 class AnnealingOrDrying(Script):
 
@@ -243,6 +246,7 @@ class AnnealingOrDrying(Script):
             Message(title = "[Anneal or Dry Filament]", text = "The script did not run because the Shutoff Temp is less than 30°.").show()
             return data
         extruders = self.global_stack.extruderList
+        self.machine_extruder_count = int(self.global_stack.getProperty("machine_extruder_count", "value"))
         bed_temperature = int(self.getSettingValueByKey("startout_temp"))
         heated_chamber = bool(self.global_stack.getProperty("machine_heated_build_volume", "value"))
         heating_zone = self.getSettingValueByKey("heating_zone_selection")
@@ -304,7 +308,7 @@ class AnnealingOrDrying(Script):
             data = self._anneal_print(add_messages, data, bed_temperature, chamber_temp, heated_chamber, heating_zone, lowest_temp, max_x, max_y, max_z, park_xy, park_z, speed_travel)
         elif cycle_type == "dry_cycle":
             data = self._dry_filament_only(data, bed_temperature, chamber_temp, heated_chamber, heating_zone, max_y, max_z, speed_travel)
-        
+
         return data
 
     def _anneal_print(
@@ -325,7 +329,7 @@ class AnnealingOrDrying(Script):
         """
         The procedure disables the M140 (and M141) lines at the end of the print, and adds additional bed (and chamber) temperature commands to the end of the G-Code file.
         The bed is allowed to cool down over a period of time.
-                
+
         :param add_messages: Whether to include M117 and M118 messages for LCD and print server
         :param anneal_data: The G-code data to be modified with annealing commands
         :param bed_temperature: Starting bed temperature in degrees Celsius
@@ -483,7 +487,7 @@ class AnnealingOrDrying(Script):
         This procedure turns the bed on, homes the printer, parks the head.  After the time period the bed is turned off.
         There is no actual print in the generated gcode, just a couple of moves to get the nozzle out of the way, and the bed heat (and possibly chamber heat) control.
         It allows a user to use the bed to warm up and hopefully dry a filament roll.
-                
+
         :param bed_temperature: Bed temperature for drying in degrees Celsius
         :param chamber_temp: Chamber/build volume temperature for drying in degrees Celsius
         :param drydata: The G-code data to be replaced with filament drying commands
@@ -494,9 +498,16 @@ class AnnealingOrDrying(Script):
         :param speed_travel: Travel speed for positioning moves in mm/min as string
         :return: Modified G-code data containing only filament drying sequence
         """
+        # Exit if the print is a UM machine as the firmware will not be happy with the gcode.
+        machine_name = str(self.global_stack.getProperty("machine_name", "value"))
+        firmware_flavor = str(self.global_stack.getProperty("machine_gcode_flavor", "value"))
+        if "Ultimaker" in machine_name or firmware_flavor in ["Ultigcode", "Griffin"]:
+            Message(title = "​⚠️⚠️⚠️ ​[Dry Filament]​ ⚠️⚠️⚠️​", text = f"Your Ultimaker printer is not compatible with the Drying Gcode that this script produces.  The script will exit.  Sorry.​ {firmware_flavor}").show()
+            return drydata
+        Message(title = "​⚠️⚠️⚠️ ​[Dry Filament]​ ⚠️⚠️⚠️​", text = f"Your printer is going to auto-home when you 'Print' this gcode.  Make sure your build plate is clear before you start.").show()
         for num in range(2, len(drydata)):
             drydata[num] = ""
-        drydata[0] = drydata[0].split("\n")[0] + "\n"
+        #drydata[0] = drydata[0].split("\n")[0] + "\n"
         add_messages = bool(self.getSettingValueByKey("add_messages"))
         pause_cmd = self.getSettingValueByKey("pause_cmd")
         if pause_cmd != "":
@@ -544,6 +555,9 @@ class AnnealingOrDrying(Script):
         if heated_chamber and heating_zone == "bed_chamber":
             drying_string += f"M141 S0 ; Shut off chamber\n"
         drying_string += "M140 S0 ; Shut off bed\n"
+        drying_string += "M104 T0 S0 ; Shut off hot end 1\n"
+        if self.machine_extruder_count > 1:
+            drying_string += "M104 T1 S0 ; Shut off hot end 2\n"
         drying_string += self.bv_fan_off_str
         if self.getSettingValueByKey("beep_when_done"):
             beep_duration = self.getSettingValueByKey("beep_duration")
@@ -567,5 +581,6 @@ class AnnealingOrDrying(Script):
         if heated_chamber and heating_zone == "bed_chamber":
             dry_txt += "; Chamber temperature ....... " + str(chamber_temp) + "°\n"
         Message(title = "[Dry Filament]", text = dry_txt).show()
-        drydata[0] = "; <<< This is a filament drying file only. There is no actual print. >>>\n;\n" + dry_txt + ";\n"
+        drydata[0] += ";\n; <<< This is a filament drying file only. There is no actual print. >>>\n;\n" + dry_txt + ";\n"
         return drydata
+
