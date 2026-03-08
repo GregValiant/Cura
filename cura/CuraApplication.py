@@ -140,7 +140,7 @@ class CuraApplication(QtApplication):
     # SettingVersion represents the set of settings available in the machine/extruder definitions.
     # You need to make sure that this version number needs to be increased if there is any non-backwards-compatible
     # changes of the settings.
-    SettingVersion = 25
+    SettingVersion = 26
 
     Created = False
 
@@ -773,7 +773,10 @@ class CuraApplication(QtApplication):
     def discardOrKeepProfileChanges(self) -> bool:
         has_user_interaction = False
         choice = self.getPreferences().getValue("cura/choice_on_profile_override")
-        if choice == "always_discard":
+        if not self._currently_loading_files:
+            # opening from a file; don't show dialog and KEEP the profile
+            self.discardOrKeepProfileChangesClosed("keep")
+        elif choice == "always_discard":
             # don't show dialog and DISCARD the profile
             self.discardOrKeepProfileChangesClosed("discard")
         elif choice == "always_keep":
