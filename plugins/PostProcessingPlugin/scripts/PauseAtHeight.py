@@ -128,12 +128,21 @@ class PauseAtHeight(Script):
                 },
                 "retraction_speed":
                 {
+<<<<<<< Updated upstream
                     "label": "Retraction Speed",
                     "description": "How fast to retract the filament.",
                     "unit": "mm/s",
                     "type": "float",
                     "default_value": 25,
                     "enabled": "pause_method not in [\\\"griffin\\\", \\\"repetier\\\"]"
+=======
+                    "label": "Standby Temperature",
+                    "description": "The temperature to hold at during the pause.  If this temperature is different than your print temperature then use the 'M109' Resume Temperature Cmd option",
+                    "unit": "\u00b0C   ",
+                    "type": "int",
+                    "default_value": 200,
+                    "enabled": "enable_pause_at_height and pause_method not in ['griffin\', 'repetier']"
+>>>>>>> Stashed changes
                 },
                 "extrude_amount":
                 {
@@ -146,12 +155,74 @@ class PauseAtHeight(Script):
                 },
                 "extrude_speed":
                 {
+<<<<<<< Updated upstream
                     "label": "Extrude Speed",
                     "description": "How fast to extrude the material after pause.",
                     "unit": "mm/s",
                     "type": "float",
                     "default_value": 3.3333,
                     "enabled": "pause_method not in [\\\"griffin\\\", \\\"repetier\\\"]"
+=======
+                    "label": "Tool changes set resume temperature",
+                    "description": "For multi-extruder printers - resume the print at the temperature of the current extruder.",
+                    "type": "bool",
+                    "default_value": false,
+                    "enabled": "tool_temp_overide_enable and enable_pause_at_height"
+                },
+                "resume_temperature_cmd":
+                {
+                    "label": "Resume Temperature Cmd",
+                    "description": "If you switch material, or if your standby temperature is different than the Resume Printing temperature, then use M109.  If standby and resume temperatures happen to be the same you can use M104 and there won't be a wait period.  'M109 R' (wait whether heating or cooling) is not enabled in all firmwares.  'M109 S' (wait for heating only) should work with any firmware.",
+                    "type": "enum",
+                    "options": {
+                        "m104_cmd": "M104 S",
+                        "m109_cmd_r": "M109 R",
+                        "m109_cmd_s": "M109 S"},
+                    "default_value": "m104_cmd",
+                    "enabled": "enable_pause_at_height and pause_method not in ['griffin', 'repetier'] and not tool_temp_overide"
+                },
+                "resume_print_temperature":
+                {
+                    "label": "Resume Print Temperature",
+                    "description": "The temperature to resume the print after the pause.  If this temperature is different than your standby temperature then use the 'M109' Resume Temperature Cmd option",
+                    "unit": "\u00b0C   ",
+                    "type": "int",
+                    "default_value": 200,
+                    "enabled": "enable_pause_at_height and pause_method not in ['griffin', 'repetier'] and not tool_temp_overide"
+                },
+                "display_text":
+                {
+                    "label": "Message to LCD",
+                    "description": "Text that should appear on the display while paused. If left empty, there will not be any message.  Please note:  It is possible that the message will be immediately overridden by another message sent by the firmware.  If 'M0 w/message' is chosen as the pause command then the message is added to the pause command. You may have as many messages as pauses.  Delimit with a comma",
+                    "type": "str",
+                    "default_value": "",
+                    "enabled": "enable_pause_at_height and pause_method != 'repetier'"
+                },
+                "custom_gcode_before_pause":
+                {
+                    "label": "G-code Before Pause",
+                    "description": "Custom g-code to run before the pause. EX: M300 to beep. Use a comma to separate multiple commands. EX: M400,M300,M117 Pause",
+                    "type": "str",
+                    "default_value": "",
+                    "enabled": "enable_pause_at_height"
+                },
+                "beep_at_pause":
+                {
+                    "label": "Beep at pause",
+                    "description": "Make an annoying sound when pausing",
+                    "type": "bool",
+                    "default_value": false,
+                    "enabled": "enable_pause_at_height"
+                },
+                "beep_length":
+                {
+                    "label": "Beep duration",
+                    "description": "How long should the annoying sound last.  The units are in milliseconds so 1000 equals 1 second. ('250' is a quick chirp).",
+                    "type": "int",
+                    "default_value": "1000",
+                    "unit": "msec   ",
+                    "enabled": "enable_pause_at_height and beep_at_pause"
+>>>>>>> Stashed changes
                 },
                 "redo_layer":
                 {
